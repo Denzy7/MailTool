@@ -159,7 +159,7 @@ python tests/gui_smoke.py shots dark                    # Windows / any desktop 
 
 ```bash
 pip install -r requirements-dev.txt
-pyinstaller --noconfirm MailTool.spec     # -> dist/MailTool/  (zip that folder)
+pyinstaller --noconfirm MailTool.spec     # -> dist/MailTool[.exe]  (single file)
 ```
 
 * Windows: put `SumatraPDF.exe` next to `MailTool.spec` to bundle it.

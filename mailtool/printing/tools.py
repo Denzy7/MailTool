@@ -5,7 +5,7 @@ import glob
 import importlib
 import os
 
-from mailtool.core.util import APP_DIR, IS_WIN, PKG_DIR, find_tool
+from mailtool.core.util import APP_DIR, IS_WIN, PKG_DIR, RES_DIR, find_tool
 
 win32print = None
 if IS_WIN:
@@ -30,7 +30,7 @@ def find_soffice(pcfg):
 
 def find_sumatra(pcfg):
     extra = [pcfg.get("sumatra")]
-    for d in dict.fromkeys([APP_DIR, os.path.dirname(PKG_DIR)]):
+    for d in dict.fromkeys([APP_DIR, RES_DIR, os.path.dirname(PKG_DIR)]):  # RES_DIR: bundled copy
         extra.append(os.path.join(d, "SumatraPDF.exe"))
         extra += glob.glob(os.path.join(d, "SumatraPDF*.exe"))
     for env in ("ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"):
