@@ -3,8 +3,8 @@
 
     pyinstaller --noconfirm MailTool.spec
 
-Output: dist/MailTool/  (a folder - zip it to distribute). One-folder starts much
-faster than one-file and trips fewer antivirus heuristics.
+Output: dist/MailTool (Linux) or dist/MailTool.exe (Windows) - a single self-contained file.
+MAILTOOL_ONEDIR=1 builds dist/MailTool/ (a folder) instead, which starts faster.
 
 Options (environment variables):
     MAILTOOL_PLAYWRIGHT=0   leave Playwright out (~120 MB smaller; EMAILINFO bodies then use the
@@ -84,12 +84,14 @@ a = Analysis(  # noqa: F821
 )
 pyz = PYZ(a.pure)  # noqa: F821
 icon = os.path.join(HERE, "mailtool", "assets", "mailtool.ico" if IS_WIN else "icon_256.png")
-exe = EXE(  # noqa: F821
-    pyz, a.scripts, [],
-    exclude_binaries=True,
+opts = dict(
     name="MailTool",
     console=os.environ.get("MAILTOOL_CONSOLE") == "1",
     icon=icon if IS_WIN else None,
     upx=False,
 )
-coll = COLLECT(exe, a.binaries, a.datas, name="MailTool", upx=False)  # noqa: F821
+if os.environ.get("MAILTOOL_ONEDIR") == "1":
+    exe = EXE(pyz, a.scripts, [], exclude_binaries=True, **opts)  # noqa: F821
+    coll = COLLECT(exe, a.binaries, a.datas, name="MailTool", upx=False)  # noqa: F821
+else:
+    exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], **opts)  # noqa: F821

@@ -131,7 +131,7 @@ def test_page_ranges():
 
 def test_classify_drops():
     s = classify("file:///home/a/My%20File.pdf")
-    assert s.kind == "path" and s.path == "/home/a/My File.pdf"
+    assert s.kind == "path" and s.path == os.path.normpath("/home/a/My File.pdf")  # native separators
     w = classify("webdavs://user@host/dav/a #1.pdf")
     assert w.kind == "url" and w.display == "a #1.pdf" and w.url.startswith("webdavs://user@host/dav/a%20%231.pdf")
     assert classify("https://example.com/x.pdf") is None
