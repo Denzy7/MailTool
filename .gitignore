@@ -8,3 +8,4 @@ dist/
 .pytest_cache/
 shots/
 SumatraPDF.exe
+web_login_keys.json

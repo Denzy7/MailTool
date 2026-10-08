@@ -37,6 +37,51 @@ Other command-line options: `--probe` (shows raw drag & drop data from a file ma
 `--install-browser` (downloads the headless Chromium), `--verbose`, and file paths to
 pre-load into the print queue.
 
+## Run it in the browser
+
+The same five screens, served to any browser on your network. Tk isn't needed, so this also works on a
+headless machine:
+
+```bash
+python run_mailtool.py --web                       # all interfaces, port 8765
+python run_mailtool.py --web --port 9000           # another port
+python run_mailtool.py --web --host 127.0.0.1      # this machine only
+MAILTOOL_WEB_TOKEN=my-code python run_mailtool.py --web          # fixed access code
+python run_mailtool.py --web --cert cert.pem --key key.pem       # HTTPS
+```
+
+`--config PATH` uses another settings file (a folder means `PATH/settings.json`), so the desktop app and
+the web server can run side by side with separate settings:
+
+```bash
+python run_mailtool.py --web --config ~/.config/MailTool-web/settings.json
+python run_mailtool.py                                  # desktop, default settings
+```
+
+At start-up it prints the addresses to open and an **access code**. Each browser asks for the code
+once, then keeps a session cookie for 30 days. Adding `#code=XXXX-XXXX` to the address logs in
+automatically, which is handy as a phone bookmark.
+
+After signing in with the code, MailTool offers a **login file**. It's a small JSON file holding a
+per-browser key, and it signs you in later with **Use a login file…** (or by dropping it on the sign-in
+box), even after the server restarts with a new code. The server keeps only a hash of each key, in
+`web_login_keys.json` next to the settings file. Revoke a file in Settings › General, and browsers
+that signed in with it are signed out. Anyone holding the file can sign in, so keep it private.
+
+* **Print:** drag files or whole folders onto the page and they upload to the server's print
+  queue (`--max-upload` sets the size limit, default 512 MB). **Download PDF** merges the queue
+  into one PDF for the browser to save or print. **Print on server** sends it to a printer on the
+  MailTool machine, and only appears when that machine can print.
+* **Paths** (library folder, reports folder, `.eml` folder) are folders on the server. A CSV to
+  sort is uploaded from the browser.
+* **Password:** the IMAP password is typed into the page and sent to the server once. It's kept in
+  the server's memory or keyring, never in `settings.json`, and never sent back to a browser.
+* **One shared session:** every signed-in browser sees the same queue, jobs and library. Settings
+  are the same `settings.json` the desktop app uses unless you pass `--config`.
+* **Plain HTTP is unencrypted:** the access code and mail password cross the network in the clear.
+  That's fine on a trusted LAN. Anywhere else, use `--cert/--key` or put it behind a reverse proxy
+  with HTTPS.
+
 ## Where things live
 
 | What | Linux | Windows |
@@ -92,6 +137,7 @@ mailtool/
   sort/       groups & matching, attachment text extraction, sort jobs
   printing/   staging, conversion, PDF ops, CUPS / SumatraPDF backends
   ui/         Tk screens; theme.py holds the brand colours
+  web/        browser version: stdlib HTTP server, JSON API, static/ page (no build step)
   assets/     icons (regenerate with tools/make_assets.py)
 tests/        pytest suite (fake mailbox) + gui_smoke.py (needs a display)
 MailTool.spec PyInstaller build

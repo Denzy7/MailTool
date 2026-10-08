@@ -7,7 +7,7 @@ from tkinter import messagebox, ttk
 
 from mailtool import APP_NAME, __version__
 from mailtool.core import deps, secrets, timeutil
-from mailtool.core.util import IS_WIN, config_dir, open_in_file_manager
+from mailtool.core.util import IS_WIN, open_in_file_manager
 from mailtool.fetch import emailinfo as ei
 from mailtool.mail.imap import MailSession
 from mailtool.printing.tools import have_word_com
@@ -38,7 +38,7 @@ class SettingsView(View):
         self.saved_lbl = ttk.Label(foot, style="Muted.TLabel")
         self.saved_lbl.pack(side="right", padx=8)
         ttk.Button(foot, text="Open settings folder", style="Small.TButton",
-                   command=lambda: open_in_file_manager(config_dir())).pack(side="left")
+                   command=lambda: open_in_file_manager(os.path.dirname(self.cfg.path))).pack(side="left")
         self.revert()
 
     def _tab(self, key, title):

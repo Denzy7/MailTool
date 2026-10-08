@@ -32,7 +32,8 @@ def have(mod):
         return False
 
 
-datas = [(os.path.join(HERE, "mailtool", "assets"), os.path.join("mailtool", "assets"))]
+datas = [(os.path.join(HERE, "mailtool", "assets"), os.path.join("mailtool", "assets")),
+         (os.path.join(HERE, "mailtool", "web", "static"), os.path.join("mailtool", "web", "static"))]
 binaries = []
 hidden = []
 

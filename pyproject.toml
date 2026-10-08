@@ -33,7 +33,7 @@ mailtool-cli = "mailtool.cli:main"     # same entry point, with a console (for -
 include = ["mailtool*"]
 
 [tool.setuptools.package-data]
-mailtool = ["assets/*"]
+mailtool = ["assets/*", "web/static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

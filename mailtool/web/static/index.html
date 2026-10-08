@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>MailTool</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icon_32.png">
+  <link rel="icon" type="image/png" sizes="256x256" href="/assets/icon_256.png">
+  <link rel="apple-touch-icon" href="/assets/icon_256.png">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <div id="app" class="app" hidden>
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="/assets/icon_64.png" alt="" width="34" height="34">
+        <span>MailTool</span>
+      </div>
+      <nav id="nav" class="nav" aria-label="Screens"></nav>
+      <div class="side-foot">
+        <div id="acct" class="acct"></div>
+        <div id="ver" class="ver"></div>
+        <button id="logout" class="link-btn side-link" type="button">Sign out</button>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="head">
+        <h1 id="title"></h1>
+        <p id="subtitle" class="sub"></p>
+      </header>
+      <section id="view" class="view"></section>
+      <footer class="bottom">
+        <div class="bar">
+          <span id="dot" class="dot"></span>
+          <span id="status" class="status">Ready</span>
+          <span class="grow"></span>
+          <span id="prog-wrap" class="prog-wrap" hidden>
+            <span id="prog-lbl" class="prog-lbl"></span>
+            <span class="prog"><span id="prog-fill"></span></span>
+            <button id="stop" class="btn small" type="button">Stop</button>
+          </span>
+          <button id="log-toggle" class="btn small" type="button">Show log</button>
+        </div>
+        <div id="log" class="log" hidden></div>
+      </footer>
+    </main>
+  </div>
+  <div id="drop-overlay" class="drop-overlay" hidden><div>Drop to add to the print queue</div></div>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <noscript>MailTool needs JavaScript.</noscript>
+</body>
+</html>
