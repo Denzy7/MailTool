@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mailtool"
+version = "1.0.0"
+description = "Download, sort and print email in one place"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pypdf>=4.0",
+    "pillow>=10.0",
+    "tkinterdnd2>=0.4",
+    "keyring>=24.0",
+    "tzdata; sys_platform == 'win32'",
+    "reportlab>=4.0",
+    "python-dateutil>=2.8",
+]
+
+[project.optional-dependencies]
+full = ["playwright>=1.40", "python-docx>=1.0", "docx2txt>=0.8", "olefile>=0.46", "pymupdf>=1.23",
+        "pywin32>=306; sys_platform == 'win32'"]
+dev = ["pytest>=7", "pyflakes>=3", "pyinstaller>=6.3"]
+
+[project.gui-scripts]
+mailtool = "mailtool.cli:main"
+
+[project.scripts]
+mailtool-cli = "mailtool.cli:main"     # same entry point, with a console (for --check / --probe on Windows)
+
+[tool.setuptools.packages.find]
+include = ["mailtool*"]
+
+[tool.setuptools.package-data]
+mailtool = ["assets/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
