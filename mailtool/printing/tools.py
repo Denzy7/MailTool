@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import glob
+import importlib
 import os
 
 from mailtool.core.util import APP_DIR, IS_WIN, PKG_DIR, find_tool
@@ -70,7 +71,7 @@ def have_word_com():
         return False
     try:
         import winreg
-        import win32com.client  # noqa: F401
+        importlib.import_module("win32com.client")
         winreg.CloseKey(winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, "Word.Application"))
         return True
     except Exception:

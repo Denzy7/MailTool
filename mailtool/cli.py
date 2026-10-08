@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import logging
 import os
 import sys
@@ -112,7 +113,7 @@ def main(argv=None):
                      max_upload_mb=args.max_upload, config=cfg)
 
     try:
-        import tkinter  # noqa: F401
+        importlib.import_module("tkinter")
     except Exception as e:
         from mailtool.core import deps
         tk_cap = deps.detect({})[0]
