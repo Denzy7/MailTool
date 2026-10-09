@@ -153,7 +153,7 @@ class Api:
                 "library_dir": self.s.library_root(), "timezone": self.s.tz_text(),
                 "jobs": [job_json(j) for j in self.s.runner.jobs[-20:]], "queue": self.s.prints.snapshot(),
                 "groups": len(self.cfg.get("sort", "groups") or []), "log": list(self.s.hub.log_ring),
-                "max_upload": self.s.max_upload}
+                "max_upload": self.s.max_upload, "update": self.s.update_info}
 
     def get_log(self, req):
         return {"log": list(self.s.hub.log_ring)}

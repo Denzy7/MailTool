@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mailtool"
-version = "1.0.0"
+dynamic = ["version"]                  # from mailtool/__init__.py (__version__)
 description = "Download, sort and print email in one place"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -28,6 +28,9 @@ mailtool = "mailtool.cli:main"
 
 [project.scripts]
 mailtool-cli = "mailtool.cli:main"     # same entry point, with a console (for --check / --probe on Windows)
+
+[tool.setuptools.dynamic]
+version = {attr = "mailtool.__version__"}
 
 [tool.setuptools.packages.find]
 include = ["mailtool*"]

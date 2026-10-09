@@ -15,13 +15,15 @@
   <div id="app" class="app" hidden>
     <aside class="sidebar">
       <div class="brand">
+        <button id="burger" class="burger" type="button" aria-controls="nav" aria-expanded="true"
+          aria-label="Collapse menu" title="Collapse menu"><span></span><span></span><span></span></button>
         <img src="/assets/icon_64.png" alt="" width="34" height="34">
-        <span>MailTool</span>
+        <span class="brand-name">MailTool</span>
       </div>
       <nav id="nav" class="nav" aria-label="Screens"></nav>
       <div class="side-foot">
         <div id="acct" class="acct"></div>
-        <div id="ver" class="ver"></div>
+        <div class="ver"><span id="ver"></span><span id="update"></span></div>
         <button id="logout" class="link-btn side-link" type="button">Sign out</button>
       </div>
     </aside>

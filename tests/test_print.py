@@ -59,6 +59,36 @@ def test_queue_pipeline_and_merge(core, tmp_path):
     assert pdfops.inspect_pdf(out) == len(ready) + 1
 
 
+def test_evicted_duplicate_stays_dup(core, tmp_path, monkeypatch):
+    """The later-dropped copy wins the race to the hash, then the first one evicts it mid-processing:
+    its worker must not flip it back to ready."""
+    data, paths = make_pdf("same"), []
+    for n in ("a.pdf", "b.pdf"):
+        p = tmp_path / n
+        p.write_bytes(data)
+        paths.append(str(p))
+    a, b = (Item(classify(p)) for p in paths)
+    stage, sanitize = core.stage, pdfops.sanitize_pdf
+
+    def slow_stage(src, dst):
+        if src.path == paths[0]:
+            time.sleep(0.3)                     # a hashes after b ...
+        stage(src, dst)
+
+    def slow_sanitize(pdf):
+        if b.dir and pdf.startswith(b.dir):
+            time.sleep(0.8)                     # ... while b is still being processed
+        return sanitize(pdf)
+    monkeypatch.setattr(core, "stage", slow_stage)
+    monkeypatch.setattr(pdfops, "sanitize_pdf", slow_sanitize)
+    core.submit(a)
+    core.submit(b)
+    wait([a, b])
+    time.sleep(1.0)                             # let b's worker finish
+    assert (a.status, b.status) == ("ready", "dup")
+    assert ("dup", b) in core.events and ("upd", b) not in core.events[core.events.index(("dup", b)):]
+
+
 def test_subset_reorder(core, tmp_path):
     from pypdf import PdfReader, PdfWriter
     w = PdfWriter()

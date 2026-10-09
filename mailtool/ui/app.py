@@ -5,18 +5,20 @@ import os
 import queue
 import time
 import tkinter as tk
+import webbrowser
 from tkinter import messagebox, ttk
 
 from mailtool import APP_NAME, __version__
-from mailtool.core import deps, secrets
+from mailtool.core import deps, secrets, updates
 from mailtool.core.config import Config
 from mailtool.core.jobs import JobRunner
 from mailtool.core.util import asset, log, open_in_file_manager, logs_dir
 from mailtool.ui import theme
 from mailtool.ui.theme import P
-from mailtool.ui.widgets import DND_ERR, LogView, PasswordDialog, make_root, register_drop
+from mailtool.ui.widgets import DND_ERR, LogView, PasswordDialog, Tooltip, make_root, register_drop
 
 NAV = [("fetch", "Fetch"), ("library", "Library"), ("sort", "Sort"), ("print", "Print"), ("settings", "Settings")]
+SIDEBAR_W, SIDEBAR_W_COLLAPSED = 212, 72
 KIND_LABEL = {"fetch": "Fetch", "sort": "Sort", "print": "Print", "test": "Connection"}
 
 
@@ -97,26 +99,51 @@ class App:
     def _build(self):
         r = self.root
         # sidebar ------------------------------------------------------------
-        sb = self.sidebar = tk.Frame(r, bg=P["sidebar"], width=212)
+        sb = self.sidebar = tk.Frame(r, bg=P["sidebar"], width=SIDEBAR_W)
         sb.pack(side="left", fill="y")
         sb.pack_propagate(False)
         brand = tk.Frame(sb, bg=P["sidebar"])
-        brand.pack(fill="x", padx=18, pady=(22, 26))
+        brand.pack(fill="x", padx=(24, 18), pady=(22, 26))
+        self.burger = tk.Label(brand, text="\u2630", bg=P["sidebar"], fg=P["sidebar_text"], font="MT.Brand",
+                               cursor="hand2")
+        self.burger.pack(side="left")
+        self.burger.bind("<Button-1>", lambda e: self.toggle_sidebar())
+        self.burger.bind("<Enter>", lambda e: self.burger.configure(fg=P["sidebar_text_on"]))
+        self.burger.bind("<Leave>", lambda e: self.burger.configure(fg=P["sidebar_text"]))
+        self.burger_tip = Tooltip(self.burger, "")
+        self.brand_name = tk.Frame(brand, bg=P["sidebar"])
+        self.brand_name.pack(side="left", padx=(12, 0))
         logo = self._logo_image(34)
         if logo:
-            tk.Label(brand, image=logo, bg=P["sidebar"]).pack(side="left")
-        tk.Label(brand, text=APP_NAME, bg=P["sidebar"], fg="#FFFFFF", font="MT.Brand").pack(side="left", padx=(10, 0))
+            tk.Label(self.brand_name, image=logo, bg=P["sidebar"]).pack(side="left")
+        tk.Label(self.brand_name, text=APP_NAME, bg=P["sidebar"], fg="#FFFFFF",
+                 font="MT.Brand").pack(side="left", padx=(10, 0))
+        brand.update_idletasks()     # widen past the default if fonts/scaling make the brand row longer
+        self.sidebar_w = max(SIDEBAR_W, brand.winfo_reqwidth() + 24 + 18)
+        sb.configure(width=self.sidebar_w)
         self.nav_items = {}
         for key, label in NAV:
             self.nav_items[key] = self._nav_button(sb, key, label)
-        foot = tk.Frame(sb, bg=P["sidebar"])
+        foot = self.side_foot = tk.Frame(sb, bg=P["sidebar"])
         foot.pack(side="bottom", fill="x", padx=18, pady=16)
         self.acct_lbl = tk.Label(foot, text="", bg=P["sidebar"], fg=P["sidebar_text"], font="MT.Small",
-                                 justify="left", anchor="w", wraplength=176)
+                                 justify="left", anchor="w", wraplength=self.sidebar_w - 36)
         self.acct_lbl.pack(fill="x")
-        tk.Label(foot, text="v%s" % __version__, bg=P["sidebar"], fg=P["sidebar_text"], font="MT.Small",
-                 anchor="w").pack(fill="x", pady=(6, 0))
+        ver = tk.Frame(foot, bg=P["sidebar"])
+        ver.pack(fill="x", pady=(6, 0))
+        tk.Label(ver, text="v%s" % __version__, bg=P["sidebar"], fg=P["sidebar_text"],
+                 font="MT.Small").pack(side="left")
+        self.update_lbl = tk.Label(ver, text="", bg=P["sidebar"], fg=P["sidebar_text"], font="MT.Small")
+        self.update_lbl.pack(side="left")
+        self.update_tip = Tooltip(self.update_lbl, "")
+        if self.cfg.get("general", "check_updates", True):
+            updates.check_async(lambda info: self.call_ui(self._show_update, info))
         self.refresh_account_label()
+        self.sidebar_open = True
+        if not self.cfg.get("general", "sidebar_open", True):
+            self.toggle_sidebar(animate=False)
+        else:
+            self.burger_tip.text = "Collapse menu"
 
         # main ----------------------------------------------------------------
         main = self.main = ttk.Frame(r)
@@ -175,7 +202,8 @@ class App:
         text.pack(side="left", fill="x", expand=True)
         badge = tk.Label(f, text="", bg=P["sidebar"], fg="#FFFFFF", font="MT.Small")
         badge.pack(side="right", padx=10)
-        item = {"frame": f, "bar": bar, "icon": icon, "text": text, "badge": badge, "key": key}
+        item = {"frame": f, "bar": bar, "icon": icon, "text": text, "badge": badge, "key": key,
+                "tip": Tooltip(icon, "")}
         for w in (f, icon, text, badge, bar):
             w.bind("<Button-1>", lambda e, k=key: self.show(k))
             w.bind("<Enter>", lambda e, it=item: self._nav_paint(it, hover=True))
@@ -192,7 +220,50 @@ class App:
         it["icon"].configure(image=self.img("nav_%s_%s.png" % (it["key"], "on" if active or hover else "off")))
 
     def set_badge(self, key, text):
-        self.nav_items[key]["badge"].configure(text=text or "")
+        it = self.nav_items[key]
+        it["badge"].configure(text=text or "")
+        it["tip"].text = "" if self.sidebar_open else self._nav_tip(it)
+
+    def _animate_sidebar(self, target, animate=True, duration=0.16):
+        if getattr(self, "_side_anim", None):
+            self.root.after_cancel(self._side_anim)
+            self._side_anim = None
+        start, t0 = self.sidebar.winfo_width() if animate else target, time.time()
+
+        def step():
+            k = min((time.time() - t0) / duration, 1.0)
+            self.sidebar.configure(width=round(start + (target - start) * (1 - (1 - k) ** 3)))   # ease-out
+            if k < 1.0:
+                self._side_anim = self.root.after(10, step)
+                return
+            self._side_anim = None
+            if not self.sidebar_open:     # labels leave once the rail has narrowed over them
+                self.brand_name.pack_forget()
+                for it in self.nav_items.values():
+                    it["text"].pack_forget()
+                    it["badge"].pack_forget()
+                    it["tip"].text = self._nav_tip(it)
+                self.side_foot.pack_forget()
+        step()
+
+    def _nav_tip(self, it):
+        badge = it["badge"].cget("text")
+        return "%s (%s)" % (it["text"].cget("text"), badge) if badge else it["text"].cget("text")
+
+    def toggle_sidebar(self, animate=True):
+        """Hamburger: switch between the full sidebar and a narrow icon-only rail."""
+        self.sidebar_open = not self.sidebar_open
+        if self.sidebar_open:       # labels go back first and are uncovered as the rail widens
+            self.brand_name.pack(side="left", padx=(12, 0))
+            for it in self.nav_items.values():
+                it["badge"].pack(side="right", padx=10)
+                it["text"].pack(side="left", fill="x", expand=True)
+                it["tip"].text = ""
+            self.side_foot.pack(side="bottom", fill="x", padx=18, pady=16)
+        self._animate_sidebar(self.sidebar_w if self.sidebar_open else SIDEBAR_W_COLLAPSED, animate)
+        self.burger_tip.hide()
+        self.burger_tip.text = "Collapse menu" if self.sidebar_open else "Expand menu"
+        self.cfg.set("general", "sidebar_open", self.sidebar_open)
 
     def show(self, key):
         if key not in self.views:
@@ -211,6 +282,16 @@ class App:
             self._nav_paint(it)
         self.cfg.set("general", "last_view", key)
         v.on_show()
+
+    def _show_update(self, info):
+        """Quiet note beside the version: up to date, or a link to the newer release."""
+        lbl = self.update_lbl
+        if info["status"] == "available":
+            lbl.configure(text=" · v%s available" % info["latest"], fg="#FACC15", cursor="hand2")
+            lbl.bind("<Button-1>", lambda e: webbrowser.open(info["url"]))
+            self.update_tip.text = "Open the v%s release page" % info["latest"]
+        elif info["status"] == "current":
+            lbl.configure(text=" · up to date")
 
     def refresh_account_label(self):
         a = self.cfg["account"]

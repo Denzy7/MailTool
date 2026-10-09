@@ -170,7 +170,10 @@ class PrintCore:
 
     # -- state
     def set(self, it, status, msg=""):
-        it.status, it.msg = status, msg
+        with self.lock:
+            if it.status == "dup":      # evicted by an earlier-dropped copy while its worker was still running
+                return
+            it.status, it.msg = status, msg
         self.notify(("upd", it))
 
     def fail(self, it, msg):
@@ -225,13 +228,13 @@ class PrintCore:
             if other is not None and other is not it and not other.removed:
                 if other.seq > it.seq and other.status in ("queued", "staging", "converting", "ready"):
                     evict = other               # keep whichever was dropped first
+                    evict.status, evict.msg = "dup", it.display
                     self.hashes[h] = it
                 else:
                     dup = other
             else:
                 self.hashes[h] = it
         if evict is not None:
-            evict.status, evict.msg = "dup", it.display
             self.notify(("dup", evict))
         if dup is not None:
             it.status, it.msg = "dup", dup.display
@@ -246,7 +249,7 @@ class PrintCore:
         else:
             self.set(it, "converting")
             pdf = self.to_pdf(kind, src_file)
-        if it.removed:
+        if it.removed or it.status == "dup":
             return
         fixed = pdfops.sanitize_pdf(pdf)
         it.pages = pdfops.inspect_pdf(pdf)

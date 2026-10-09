@@ -11,7 +11,7 @@ import tempfile
 import threading
 import time
 
-from mailtool.core import deps, secrets
+from mailtool.core import deps, secrets, updates
 from mailtool.core.config import Config
 from mailtool.core.jobs import JobRunner
 from mailtool.core.util import log
@@ -136,6 +136,13 @@ class WebState:
         self.prints = PrintService(self)
         self._pump_thread = threading.Thread(target=self._pump, name="web-events", daemon=True)
         self._pump_thread.start()
+        self.update_info = None
+        if self.cfg.get("general", "check_updates", True):
+            updates.check_async(self._update_checked)
+
+    def _update_checked(self, info):
+        self.update_info = info
+        self.notify("update", update=info)
 
     # ------------------------------------------------------------------ messages
     def log(self, text, level="info", prefix="MailTool"):

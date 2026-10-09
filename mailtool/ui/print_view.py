@@ -54,10 +54,37 @@ class PrintView(View):
         ttk.Button(top, text="Add folder…", command=self.add_folder_dialog).pack(side="right")
         ttk.Button(top, text="Add files…", command=self.add_dialog).pack(side="right", padx=6)
 
+        # bottom rows are packed before the table so a short window shrinks the table, not the buttons
+        foot = ttk.Frame(self.frame, padding=(28, 10, 28, 14))
+        foot.pack(side="bottom", fill="x")
+        self.merge_var = tk.BooleanVar(value=bool(self.pcfg.get("merge_batch", True)))
+        ttk.Checkbutton(foot, text="One print job (merge everything)", variable=self.merge_var, style="Bg.TCheckbutton",
+                        command=lambda: self.pcfg.update(merge_batch=bool(self.merge_var.get()))).pack(side="left")
+        self.clear_var = tk.BooleanVar(value=bool(self.pcfg.get("clear_after")))
+        ttk.Checkbutton(foot, text="Clear list after printing", variable=self.clear_var, style="Bg.TCheckbutton",
+                        command=lambda: self.pcfg.update(clear_after=bool(self.clear_var.get()))).pack(side="left",
+                                                                                                     padx=16)
+        self.b_print = ttk.Button(foot, text="Print", style="Accent.TButton", command=self.start_print)
+        self.b_print.pack(side="right")
+        self.b_cancel = ttk.Button(foot, text="Cancel", command=self.cancel_print, state="disabled")
+        self.b_cancel.pack(side="right", padx=8)
+        self.prep_lbl = ttk.Label(foot, text="", style="Muted.TLabel")
+        self.prep_lbl.pack(side="right", padx=8)
+
+        bar = ttk.Frame(self.frame, padding=(28, 8, 28, 0))
+        bar.pack(side="bottom", fill="x")
+        self.btns = []
+        for text, cmd in (("Up", lambda: self.move(-1)), ("Down", lambda: self.move(1)),
+                          ("Sort by name", self.sort_names), ("Pages…", self.open_pages),
+                          ("Copies…", self.set_copies), ("Remove", self.remove_selected), ("Clear", self.clear)):
+            b = ttk.Button(bar, text=text, style="Small.TButton", command=cmd)
+            b.pack(side="left", padx=(0, 4))
+            self.btns.append(b)
+
         mid = tk.Frame(self.frame, bg=P["surface"], highlightthickness=1, highlightbackground=P["border"])
         mid.pack(fill="both", expand=True, padx=28)
         cols = ("name", "status", "pages", "copies")
-        self.tree = ttk.Treeview(mid, columns=cols, show="headings", selectmode="browse")
+        self.tree = ttk.Treeview(mid, columns=cols, show="headings", selectmode="browse", height=7)
         for c, t, w in (("name", "File", 340), ("status", "Status", 300), ("pages", "Pages", 70),
                         ("copies", "Copies", 70)):
             self.tree.heading(c, text=t)
@@ -83,31 +110,6 @@ class PrintView(View):
             register_drop(self.tree, self.on_drop)
             register_drop(self.drop_hint, self.on_drop)
 
-        bar = ttk.Frame(self.frame, padding=(28, 8, 28, 0))
-        bar.pack(fill="x")
-        self.btns = []
-        for text, cmd in (("Up", lambda: self.move(-1)), ("Down", lambda: self.move(1)),
-                          ("Sort by name", self.sort_names), ("Pages…", self.open_pages),
-                          ("Copies…", self.set_copies), ("Remove", self.remove_selected), ("Clear", self.clear)):
-            b = ttk.Button(bar, text=text, style="Small.TButton", command=cmd)
-            b.pack(side="left", padx=(0, 4))
-            self.btns.append(b)
-
-        foot = ttk.Frame(self.frame, padding=(28, 10, 28, 14))
-        foot.pack(fill="x")
-        self.merge_var = tk.BooleanVar(value=bool(self.pcfg.get("merge_batch", True)))
-        ttk.Checkbutton(foot, text="One print job (merge everything)", variable=self.merge_var, style="Bg.TCheckbutton",
-                        command=lambda: self.pcfg.update(merge_batch=bool(self.merge_var.get()))).pack(side="left")
-        self.clear_var = tk.BooleanVar(value=bool(self.pcfg.get("clear_after")))
-        ttk.Checkbutton(foot, text="Clear list after printing", variable=self.clear_var, style="Bg.TCheckbutton",
-                        command=lambda: self.pcfg.update(clear_after=bool(self.clear_var.get()))).pack(side="left",
-                                                                                                     padx=16)
-        self.b_print = ttk.Button(foot, text="Print", style="Accent.TButton", command=self.start_print)
-        self.b_print.pack(side="right")
-        self.b_cancel = ttk.Button(foot, text="Cancel", command=self.cancel_print, state="disabled")
-        self.b_cancel.pack(side="right", padx=8)
-        self.prep_lbl = ttk.Label(foot, text="", style="Muted.TLabel")
-        self.prep_lbl.pack(side="right", padx=8)
         self._update_empty()
         self.load_printers()
 

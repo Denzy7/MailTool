@@ -41,3 +41,10 @@ def isolated_dirs(tmp_path, monkeypatch):
     monkeypatch.setenv("APPDATA", str(tmp_path / "cfg"))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "data"))
     yield
+
+
+@pytest.fixture(autouse=True)
+def no_update_check(monkeypatch):
+    """Tests never ask GitHub for releases."""
+    from mailtool.core import updates
+    monkeypatch.setattr(updates, "check_async", lambda callback, current=None: None)

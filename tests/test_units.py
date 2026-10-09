@@ -193,3 +193,20 @@ def test_config_never_stores_password(tmp_path):
     text = open(c.path).read()
     assert "secret" not in text
     assert Config(str(tmp_path / "s.json")).get("general", "timezone") == "+03:00"
+
+
+def test_update_version_compare(monkeypatch):
+    import io
+    import json
+    from mailtool.core import updates
+    assert updates.parse_version("v1.2.10") == (1, 2, 10)
+    assert updates.parse_version("nightly") is None
+    assert updates._newer("v1.0.10", "1.0.9") and updates._newer("1.1", "1.0.9")
+    assert not updates._newer("v1.0.1", "1.0.1") and not updates._newer("1.0", "1.0.0")
+
+    def fake_urlopen(req, timeout):
+        return io.BytesIO(json.dumps({"tag_name": "v1.2.0", "html_url": "https://x/r/v1.2.0"}).encode())
+    monkeypatch.setattr(updates.urllib.request, "urlopen", fake_urlopen)
+    assert updates.check("1.0.1") == {"status": "available", "current": "1.0.1", "latest": "1.2.0",
+                                      "url": "https://x/r/v1.2.0"}
+    assert updates.check("1.2.0")["status"] == "current"

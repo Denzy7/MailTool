@@ -16,6 +16,8 @@ DEFAULTS = {
         "timezone": "Africa/Nairobi",   # IANA name or +HH:MM offset; used for all dates
         "theme": "system",              # system | light | dark
         "last_view": "fetch",
+        "sidebar_open": True,           # False = icon-only sidebar
+        "check_updates": True,          # ask GitHub for a newer release on start (shown next to the version)
     },
     "account": {
         "server": "",

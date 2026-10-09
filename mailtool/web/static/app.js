@@ -411,6 +411,7 @@ function handleEvent(ev) {
     case "sort":
       if (S.view === "sort" && Views.sort.external) Views.sort.external();
       break;
+    case "update": renderUpdate(ev.update); break;
     case "resync": reloadState(); break;
   }
 }
@@ -507,7 +508,7 @@ const NAV = [["fetch", "Fetch"], ["library", "Library"], ["sort", "Sort"], ["pri
 function buildNav() {
   const nav = $("#nav");
   for (const [key, label] of NAV) {
-    nav.append(h("a", { href: "#/" + key, dataset: { key } },
+    nav.append(h("a", { href: "#/" + key, title: label, dataset: { key } },
       h("img", { src: "/assets/nav_" + key + "_off.png", alt: "" }),
       h("span", { class: "label" }, label), h("span", { class: "badge" })));
   }
@@ -523,8 +524,22 @@ function paintNav() {
 }
 
 function setBadge(key, text) {
-  const a = $("#nav").querySelector('[data-key="' + key + '"] .badge');
-  if (a) a.textContent = text || "";
+  const a = $("#nav").querySelector('[data-key="' + key + '"]');
+  if (!a) return;
+  const label = NAV.find((n) => n[0] === key)[1];
+  a.querySelector(".badge").textContent = text || "";
+  a.classList.toggle("has-badge", !!text);
+  a.title = text ? label + " (" + text + ")" : label;
+}
+
+function toggleSidebar(open) {
+  const collapsed = open === undefined ? !$("#app").classList.contains("side-collapsed") : !open;
+  $("#app").classList.toggle("side-collapsed", collapsed);
+  const b = $("#burger"), label = collapsed ? "Expand menu" : "Collapse menu";
+  b.setAttribute("aria-expanded", String(!collapsed));
+  b.setAttribute("aria-label", label);
+  b.title = label;
+  try { localStorage.setItem("mt.sidebar", collapsed ? "0" : "1"); } catch (e) { /* private mode */ }
 }
 
 function updateBadges() {
@@ -538,6 +553,17 @@ function renderAccount() {
   const a = S.account || {};
   $("#acct").textContent = a.configured ? a.username + "\n" + a.server + " · " + (a.mailbox || "INBOX")
     : "No mail account yet\nSet one up in Settings";
+}
+
+function renderUpdate(u) {
+  // quiet note beside the version: up to date, or a link to the newer release (nothing if the check failed)
+  const el = $("#update");
+  if (u && u.status === "available") {
+    el.replaceChildren(" · ", h("a", { href: u.url, target: "_blank", rel: "noopener",
+      title: "Open the v" + u.latest + " release page" }, "v" + u.latest + " available"));
+  } else {
+    el.textContent = u && u.status === "current" ? " · up to date" : "";
+  }
 }
 
 function applyTheme(theme) {
@@ -584,6 +610,7 @@ async function reloadState() {
   applyTheme(st.theme);
   renderAccount();
   $("#ver").textContent = "v" + st.version;
+  renderUpdate(st.update);
   clear($("#log"));
   for (const ev of st.log) addLog(ev, true);
   updateBadges();
@@ -599,10 +626,14 @@ async function boot() {
     if (e.status !== 401) toast(e.message, "error");
     return;
   }
+  let sidePref = null;
+  try { sidePref = localStorage.getItem("mt.sidebar"); } catch (e) { /* private mode */ }
+  toggleSidebar(sidePref !== "0");      // while still hidden, so a saved collapsed menu doesn't animate in
   $("#app").hidden = false;
   if (!$("#nav").childElementCount) {
     buildNav();
     $("#log-toggle").addEventListener("click", () => toggleLog());
+    $("#burger").addEventListener("click", () => toggleSidebar());
     $("#stop").addEventListener("click", () => act(() => api("POST", "/api/jobs/cancel")));
     $("#logout").addEventListener("click", async () => {
       await fetch("/logout", { method: "POST", headers: { "X-MailTool": "1" }, credentials: "same-origin" });
